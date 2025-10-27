@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+
+{% block title %}个人中心 - 百度贴吧{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+}
+
+.profile-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    background: transparent;
+}
+
+.profile-tabs .nav-link:hover {
+    color: #0d6efd;
+    border-bottom-color: #e9ecef;
+}
+
+.stats-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.post-item {
+    transition: all 0.2s ease;
+}
+
+.post-item:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+.avatar-upload {
+    position: relative;
+    display: inline-block;
+}
+
+.avatar-upload .btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- 用户信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <!-- 头像区域 -->
+                        <div class="col-md-3 text-center">
+                            <div class="avatar-upload">
+                                {% if user_profile.avatar %}
+                                    <img src="{{ user_profile.avatar.url }}" alt="头像" class="rounded-circle" width="120" height="120">
+                                {% else %}
+                                    <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                                        <i class="fas fa-user fa-3x text-light"></i>
+                                    </div>
+                                {% endif %}
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#avatarModal">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                            </div>
+                            <h4 class="mt-3 mb-1">{{ user.username }}</h4>
+                            {% if user_profile.bio %}
+                                <p class="text-muted">{{ user_profile.bio }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 统计信息 -->
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card stats-card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-primary mb-1">{{ user_posts.count }}</h3>
+                                            <small class="text-muted">发帖数</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stats-card" style="border-left-color: #198754;">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-success mb-1">{{ total_likes }}</h3>
+                                            <small class="text-muted">获赞数</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stats-card" style="border-left-color: #6f42c1;">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-purple mb-1">{{ user_comments.count }}</h3>
+                                            <small class="text-muted">评论数</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stats-card" style="border-left-color: #fd7e14;">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-warning mb-1">{{ favorite_posts.count }}</h3>
+                                            <small class="text-muted">收藏数</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 个人信息 -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% if user_profile.location %}
+                                            <span class="badge bg-light text-dark">
+                                                <i class="fas fa-map-marker-alt me-1"></i>{{ user_profile.location }}
+                                            </span>
+                                        {% endif %}
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-calendar me-1"></i>加入于 {{ user.date_joined|date:"Y-m-d" }}
+                                        </span>
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-clock me-1"></i>最后登录 {{ user.last_login|date:"Y-m-d H:i" }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 标签页布局 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header p-0">
+                    <ul class="nav nav-tabs profile-tabs" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="posts-tab" data-bs-toggle="tab" data-bs-target="#posts" type="button" role="tab">
+                                <i class="fas fa-file-alt me-2"></i>我的帖子
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="favorites-tab" data-bs-toggle="tab" data-bs-target="#favorites" type="button" role="tab">
+                                <i class="fas fa-star me-2"></i>我的收藏
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
+                                <i class="fas fa-cog me-2"></i>账号设置
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content" id="profileTabsContent">
+                        <!-- 我的帖子标签页 -->
+                        <div class="tab-pane fade show active" id="posts" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">我的帖子 ({{ user_posts.count }})</h5>
+                                <a href="{% url 'tieba:create_post' %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>发布新帖
+                                </a>
+                            </div>
+                            
+                            {% if user_posts %}
+                                <div class="list-group">
+                                    {% for post in user_posts %}
+                                        <div class="list-group-item post-item">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">
+                                                        <a href="{% url 'tieba:post_detail' post.id %}" class="text-decoration-none">
+                                                            {{ post.title }}
+                                                        </a>
+                                                        {% if post.is_draft %}
+                                                            <span class="badge bg-warning ms-2">草稿</span>
+                                                        {% endif %}
+                                                    </h6>
+                                                    <p class="text-muted small mb-2">{{ post.content|striptags|truncatewords:30 }}</p>
+                                                    <div class="text-muted small">
+                                                        <span class="me-3">{{ post.created_at|date:"Y-m-d H:i" }}</span>
+                                                        <span class="me-3"><i class="fas fa-eye"></i> {{ post.view_count }}</span>
+                                                        <span class="me-3"><i class="fas fa-heart"></i> {{ post.like_count }}</span>
+                                                        <span class="badge bg-secondary">{{ post.category.name }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="btn-group btn-group-sm ms-3">
+                                                    <a href="{% url 'tieba:edit_post' post.id %}" class="btn btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePostModal" data-post-id="{{ post.id }}" data-post-title="{{ post.title }}">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">您还没有发布过帖子</p>
+                                    <a href="{% url 'tieba:create_post' %}" class="btn btn-primary">发布第一个帖子</a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 我的收藏标签页 -->
+                        <div class="tab-pane fade" id="favorites" role="tabpanel">
+                            <h5 class="mb-3">我的收藏 ({{ favorite_posts.count }})</h5>
+                            
+                            {% if favorite_posts %}
+                                <div class="list-group">
+                                    {% for favorite in favorite_posts %}
+                                        <div class="list-group-item post-item">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">
+                                                        <a href="{% url 'tieba:post_detail' favorite.post.id %}" class="text-decoration-none">
+                                                            {{ favorite.post.title }}
+                                                        </a>
+                                                    </h6>
+                                                    <p class="text-muted small mb-2">
+                                                        作者: {{ favorite.post.author.username }}
+                                                    </p>
+                                                    <p class="text-muted small mb-2">{{ favorite.post.content|striptags|truncatewords:30 }}</p>
+                                                    <div class="text-muted small">
+                                                        <span class="me-3">{{ favorite.post.created_at|date:"Y-m-d H:i" }}</span>
+                                                        <span class="me-3"><i class="fas fa-eye"></i> {{ favorite.post.view_count }}</span>
+                                                        <span class="me-3"><i class="fas fa-heart"></i> {{ favorite.post.like_count }}</span>
+                                                        <span class="badge bg-secondary">{{ favorite.post.category.name }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="btn-group btn-group-sm ms-3">
+                                                    <a href="{% url 'tieba:post_detail' favorite.post.id %}" class="btn btn-outline-primary">
+                                                        查看
+                                                    </a>
+                                                    <button type="button" class="btn btn-outline-danger" onclick="removeFavorite({{ favorite.post.id }})">
+                                                        取消收藏
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">您还没有收藏任何帖子</p>
+                                    <a href="{% url 'tieba:index' %}" class="btn btn-primary">去发现精彩内容</a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 账号设置标签页 -->
+                        <div class="tab-pane fade" id="settings" role="tabpanel">
+                            <h5 class="mb-3">账号设置</h5>
+                            
+                            <form method="post" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="username" class="form-label">用户名</label>
+                                            <input type="text" class="form-control" id="username" value="{{ user.username }}" disabled>
+                                            <div class="form-text">用户名不可修改</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">邮箱地址</label>
+                                            <input type="email" class="form-control" id="email" value="{{ user.email|default:'未设置' }}" disabled>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="bio" class="form-label">个人简介</label>
+                                            <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="介绍一下自己...">{{ user_profile.bio|default:'' }}</textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="location" class="form-label">所在地</label>
+                                            <input type="text" class="form-control" id="location" name="location" value="{{ user_profile.location|default:'' }}" placeholder="请输入所在城市">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">头像</label>
+                                    <div class="d-flex align-items-center">
+                                        {% if user_profile.avatar %}
+                                            <img src="{{ user_profile.avatar.url }}" alt="当前头像" class="rounded-circle me-3" width="80" height="80">
+                                        {% else %}
+                                            <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center me-3" style="width: 80px; height: 80px;">
+                                                <i class="fas fa-user fa-2x text-light"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div class="flex-grow-1">
+                                            <input type="file" name="avatar" class="form-control" accept="image/*">
+                                            <div class="form-text">支持 JPG、PNG 格式，建议尺寸 200x200 像素</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="submit" class="btn btn-primary">保存设置</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除帖子确认模态框 -->
+<div class="modal fade" id="deletePostModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除帖子 "<span id="deletePostTitle"></span>" 吗？此操作不可恢复。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form id="deletePostForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 删除帖子模态框处理
+document.addEventListener('DOMContentLoaded', function() {
+    const deletePostModal = document.getElementById('deletePostModal');
+    
+    deletePostModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const postId = button.getAttribute('data-post-id');
+        const postTitle = button.getAttribute('data-post-title');
+        
+        document.getElementById('deletePostTitle').textContent = postTitle;
+        document.getElementById('deletePostForm').action = `/post/${postId}/delete/`;
+    });
+});
+
+// 取消收藏功能
+function removeFavorite(postId) {
+    if (confirm('确定要取消收藏这个帖子吗？')) {
+        fetch(`/post/${postId}/favorite/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.favorited === false) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+// 标签页切换时保存状态
+const profileTabs = document.getElementById('profileTabs');
+if (profileTabs) {
+    profileTabs.addEventListener('click', function(e) {
+        if (e.target.classList.contains('nav-link')) {
+            const tabId = e.target.getAttribute('data-bs-target');
+            localStorage.setItem('activeProfileTab', tabId);
+        }
+    });
+    
+    // 恢复上次激活的标签页
+    const activeTab = localStorage.getItem('activeProfileTab');
+    if (activeTab) {
+        const tab = document.querySelector(`[data-bs-target="${activeTab}"]`);
+        if (tab) {
+            new bootstrap.Tab(tab).show();
+        }
+    }
+}
+</script>
+{% endblock %}

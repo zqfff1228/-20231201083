@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import UserCreationForm
 from django.http import JsonResponse
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Category, Post, Comment, UserProfile, Like, Favorite
 
@@ -318,6 +318,58 @@ def edit_profile(request):
     
     context = {'user_profile': user_profile}
     return render(request, 'tieba/edit_profile.html', context)
+
+
+@login_required
+def profile(request):
+    """个人中心页面"""
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        # 处理表单提交
+        bio = request.POST.get('bio', '')
+        location = request.POST.get('location', '')
+        
+        user_profile.bio = bio
+        user_profile.location = location
+        
+        # 处理头像上传
+        if 'avatar' in request.FILES:
+            user_profile.avatar = request.FILES['avatar']
+        
+        user_profile.save()
+        
+        # 重定向到个人中心页面，避免重复提交
+        return redirect('tieba:profile')
+    
+    # 获取用户的帖子
+    user_posts = Post.objects.filter(author=request.user, is_active=True).order_by('-created_at')
+    
+    # 获取用户的评论
+    user_comments = Comment.objects.filter(author=request.user, is_active=True).order_by('-created_at')
+    
+    # 获取用户的收藏
+    favorite_posts = Favorite.objects.filter(user=request.user).select_related('post').order_by('-created_at')
+    
+    # 计算用户的总获赞数（帖子点赞数 + 评论点赞数）
+    user_post_likes = Post.objects.filter(author=request.user, is_active=True).aggregate(total=Sum('like_count'))['total'] or 0
+    user_comment_likes = Comment.objects.filter(author=request.user, is_active=True).aggregate(total=Sum('like_count'))['total'] or 0
+    total_likes = user_post_likes + user_comment_likes
+    
+    # 更新用户资料中的帖子数和评论数
+    user_profile.post_count = user_posts.count()
+    user_profile.comment_count = user_comments.count()
+    user_profile.save()
+    
+    context = {
+        'user_profile': user_profile,
+        'user_posts': user_posts,
+        'user_comments': user_comments,
+        'favorite_posts': favorite_posts,
+        'total_likes': total_likes,
+    }
+    
+    return render(request, 'tieba/profile.html', context)
 
 
 def search_posts(request):

@@ -30,6 +30,7 @@ urlpatterns = [
     # 用户相关
     path('profile/<str:username>/', views.user_profile, name='user_profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/', views.profile, name='profile'),
     
     # 搜索相关
     path('search/', views.search_posts, name='search'),
