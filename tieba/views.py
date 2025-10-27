@@ -1,23 +1,63 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.forms import UserCreationForm
 from django.http import JsonResponse
-from django.db.models import Count
+from django.db.models import Count, Q
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Category, Post, Comment, UserProfile, Like
 
 
 def index(request):
     """首页 - 显示所有帖子和分类"""
-    categories = Category.objects.all()
-    posts = Post.objects.filter(is_active=True).order_by('-created_at')
+    # 获取所有分类，并统计每个分类的帖子数量
+    categories = Category.objects.annotate(post_count=Count('post', filter=Q(post__is_active=True)))
     
-    # 获取热门帖子（按浏览数排序）
-    hot_posts = Post.objects.filter(is_active=True).order_by('-view_count')[:10]
+    # 获取查询参数
+    sort = request.GET.get('sort', 'latest')
+    category_id = request.GET.get('category')
+    
+    # 基础查询
+    posts = Post.objects.filter(is_active=True)
+    
+    # 按分类筛选
+    if category_id:
+        posts = posts.filter(category_id=category_id)
+    
+    # 排序逻辑
+    if sort == 'hot':
+        posts = posts.order_by('-view_count', '-like_count', '-created_at')
+    elif sort == 'recommend':
+        # 推荐算法：高浏览数 + 高点赞数 + 近期发布
+        posts = posts.order_by('-view_count', '-like_count', '-created_at')
+    else:  # latest
+        posts = posts.order_by('-created_at')
+    
+    # 分页处理
+    paginator = Paginator(posts, 12)  # 每页显示12个帖子
+    page = request.GET.get('page', 1)
+    
+    try:
+        posts_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        posts_paginated = paginator.page(1)
+    except EmptyPage:
+        posts_paginated = paginator.page(paginator.num_pages)
+    
+    # 获取热门帖子（按浏览数排序，取前5个）
+    hot_posts = Post.objects.filter(is_active=True).order_by('-view_count')[:5]
+    
+    # 网站统计数据
+    total_posts = Post.objects.filter(is_active=True).count()
+    total_users = User.objects.count()
     
     context = {
         'categories': categories,
-        'posts': posts,
+        'posts': posts_paginated,
         'hot_posts': hot_posts,
+        'total_posts': total_posts,
+        'total_users': total_users,
     }
     return render(request, 'tieba/index.html', context)
 
@@ -257,3 +297,62 @@ def edit_profile(request):
     
     context = {'user_profile': user_profile}
     return render(request, 'tieba/edit_profile.html', context)
+
+
+def search_posts(request):
+    """搜索帖子"""
+    query = request.GET.get('q', '').strip()
+    
+    if query:
+        # 搜索标题和内容中包含关键词的帖子
+        posts = Post.objects.filter(
+            Q(title__icontains=query) | Q(content__icontains=query),
+            is_active=True
+        ).order_by('-created_at')
+    else:
+        posts = Post.objects.filter(is_active=True).order_by('-created_at')
+    
+    # 获取所有分类
+    categories = Category.objects.annotate(post_count=Count('post', filter=Q(post__is_active=True)))
+    
+    # 获取热门帖子（按浏览数排序，取前5个）
+    hot_posts = Post.objects.filter(is_active=True).order_by('-view_count')[:5]
+    
+    # 分页处理
+    paginator = Paginator(posts, 12)
+    page = request.GET.get('page', 1)
+    
+    try:
+        posts_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        posts_paginated = paginator.page(1)
+    except EmptyPage:
+        posts_paginated = paginator.page(paginator.num_pages)
+    
+    context = {
+        'posts': posts_paginated,
+        'categories': categories,
+        'hot_posts': hot_posts,
+        'query': query,
+        'total_results': posts.count() if query else 0,
+    }
+    
+    return render(request, 'tieba/search_results.html', context)
+
+
+def register(request):
+    """用户注册"""
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # 自动登录用户
+            login(request, user)
+            # 创建用户资料
+            UserProfile.objects.create(user=user)
+            return redirect('tieba:index')
+    else:
+        form = UserCreationForm()
+    
+    context = {'form': form}
+    return render(request, 'tieba/register.html', context)

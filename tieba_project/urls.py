@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('tieba.urls')),  # 包含贴吧应用的URL
+    path('accounts/', include('django.contrib.auth.urls')),  # 包含Django认证系统的URL
 ]
 
 # 开发环境下提供静态文件和媒体文件服务

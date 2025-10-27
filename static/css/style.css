@@ -91,6 +91,92 @@ body {
     box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
 }
 
+/* 卡片式布局样式 */
+.post-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15);
+    border-color: var(--primary-blue);
+}
+
+.post-card .card-body {
+    padding: 1.25rem;
+}
+
+.post-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+}
+
+.post-card .card-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+/* 分类筛选按钮样式 */
+.btn-outline-primary.active {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: white;
+}
+
+/* 热门帖子标识 */
+.badge.bg-danger {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* 分页样式 */
+.pagination .page-link {
+    border: 1px solid #dee2e6;
+    color: var(--primary-blue);
+    padding: 0.5rem 0.75rem;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+/* 右侧边栏卡片样式 */
+.card-header.bg-primary {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%) !important;
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.75rem 1.25rem;
+    transition: background-color 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* 网站统计样式 */
+.text-primary {
+    color: var(--primary-blue) !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
 .post-item h5 a {
     color: var(--dark-blue);
     text-decoration: none;
