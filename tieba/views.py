@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -101,16 +102,36 @@ def create_post(request):
         title = request.POST.get('title')
         content = request.POST.get('content')
         category_id = request.POST.get('category')
+        tags_json = request.POST.get('tags', '[]')
+        is_draft = request.POST.get('is_draft') == 'true'
         
         if title and content and category_id:
             category = get_object_or_404(Category, id=category_id)
+            
+            # 解析标签JSON
+            try:
+                tags = json.loads(tags_json)
+                if not isinstance(tags, list):
+                    tags = []
+            except (json.JSONDecodeError, TypeError):
+                tags = []
+            
+            # 创建帖子
             post = Post.objects.create(
                 title=title,
                 content=content,
                 author=request.user,
-                category=category
+                category=category,
+                tags=tags,
+                is_draft=is_draft
             )
-            return redirect('tieba:post_detail', post_id=post.id)
+            
+            if is_draft:
+                # 如果是草稿，跳转到草稿列表或用户资料页
+                return redirect('tieba:user_profile', username=request.user.username)
+            else:
+                # 如果是正式发布，跳转到帖子详情页
+                return redirect('tieba:post_detail', post_id=post.id)
     
     categories = Category.objects.all()
     context = {'categories': categories}

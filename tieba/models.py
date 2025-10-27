@@ -24,6 +24,7 @@ class Post(models.Model):
     content = models.TextField(verbose_name='帖子内容')
     author = models.ForeignKey(AuthUser, on_delete=models.CASCADE, verbose_name='作者')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='所属分类')
+    tags = models.JSONField(default=list, blank=True, verbose_name='标签')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     view_count = models.PositiveIntegerField(default=0, verbose_name='浏览数')
@@ -31,6 +32,7 @@ class Post(models.Model):
     favorite_count = models.PositiveIntegerField(default=0, verbose_name='收藏数')
     is_pinned = models.BooleanField(default=False, verbose_name='是否置顶')
     is_active = models.BooleanField(default=True, verbose_name='是否有效')
+    is_draft = models.BooleanField(default=False, verbose_name='是否为草稿')
     
     class Meta:
         verbose_name = '帖子'
