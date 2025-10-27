@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.http import JsonResponse
 from django.db.models import Count, Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import Category, Post, Comment, UserProfile, Like
+from .models import Category, Post, Comment, UserProfile, Like, Favorite
 
 
 def index(request):
@@ -338,6 +338,38 @@ def search_posts(request):
     }
     
     return render(request, 'tieba/search_results.html', context)
+
+
+@login_required
+def favorite_post(request, post_id):
+    """收藏帖子"""
+    post = get_object_or_404(Post, id=post_id, is_active=True)
+    
+    # 检查是否已经收藏
+    favorite, created = Favorite.objects.get_or_create(
+        user=request.user,
+        post=post
+    )
+    
+    if not created:
+        # 如果已经收藏，则取消收藏
+        favorite.delete()
+        post.favorite_count -= 1
+        favorited = False
+    else:
+        # 新收藏
+        post.favorite_count += 1
+        favorited = True
+    
+    post.save()
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'favorited': favorited,
+            'favorite_count': post.favorite_count
+        })
+    
+    return redirect('tieba:post_detail', post_id=post.id)
 
 
 def register(request):

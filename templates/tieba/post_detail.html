@@ -5,6 +5,13 @@
 {% block content %}
 <div class="row">
     <div class="col-md-8">
+        <!-- 返回列表按钮 -->
+        <div class="mb-3">
+            <a href="{% url 'tieba:index' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 返回帖子列表
+            </a>
+        </div>
+        
         <!-- 帖子内容 -->
         <div class="card mb-4">
             <div class="card-header">
@@ -38,11 +45,30 @@
                         <span class="badge bg-secondary">{{ post.category.name }}</span>
                     </div>
                     
-                    <div>
+                    <div class="d-flex gap-2">
+                        <!-- 点赞按钮 -->
                         <button class="btn btn-sm btn-outline-danger like-btn" data-post-id="{{ post.id }}">
                             <i class="fas fa-heart"></i> 
                             <span class="like-count">{{ post.like_count }}</span>
                         </button>
+                        
+                        <!-- 收藏按钮 -->
+                        <button class="btn btn-sm btn-outline-warning favorite-btn" data-post-id="{{ post.id }}">
+                            <i class="fas fa-star"></i> 
+                            <span class="favorite-count">{{ post.favorite_count|default:0 }}</span>
+                        </button>
+                        
+                        <!-- 分享按钮 -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-share-alt"></i> 分享
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="shareToWeibo()">分享到微博</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="shareToQQ()">分享到QQ</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="copyLink()">复制链接</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -143,6 +169,29 @@ $(document).ready(function() {
         });
     });
     
+    // 帖子收藏功能
+    $('.favorite-btn').click(function() {
+        var postId = $(this).data('post-id');
+        var button = $(this);
+        var favoriteCount = button.find('.favorite-count');
+        
+        $.ajax({
+            url: '/post/' + postId + '/favorite/',
+            type: 'POST',
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(data) {
+                favoriteCount.text(data.favorite_count);
+                if (data.favorited) {
+                    button.removeClass('btn-outline-warning').addClass('btn-warning');
+                } else {
+                    button.removeClass('btn-warning').addClass('btn-outline-warning');
+                }
+            }
+        });
+    });
+    
     // 评论点赞功能
     $('.like-comment-btn').click(function() {
         var commentId = $(this).data('comment-id');
@@ -166,5 +215,35 @@ $(document).ready(function() {
         });
     });
 });
+
+// 分享功能
+function shareToWeibo() {
+    var url = encodeURIComponent(window.location.href);
+    var title = encodeURIComponent(document.title);
+    window.open('http://service.weibo.com/share/share.php?url=' + url + '&title=' + title, '_blank');
+}
+
+function shareToQQ() {
+    var url = encodeURIComponent(window.location.href);
+    var title = encodeURIComponent(document.title);
+    window.open('https://connect.qq.com/widget/shareqq/index.html?url=' + url + '&title=' + title, '_blank');
+}
+
+function copyLink() {
+    var url = window.location.href;
+    navigator.clipboard.writeText(url).then(function() {
+        alert('链接已复制到剪贴板！');
+    }, function(err) {
+        console.error('复制失败: ', err);
+        // 备用方案
+        var textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('链接已复制到剪贴板！');
+    });
+}
 </script>
 {% endblock %}

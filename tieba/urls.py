@@ -24,6 +24,9 @@ urlpatterns = [
     path('post/<int:post_id>/like/', views.like_post, name='like_post'),
     path('comment/<int:comment_id>/like/', views.like_comment, name='like_comment'),
     
+    # 收藏相关
+    path('post/<int:post_id>/favorite/', views.favorite_post, name='favorite_post'),
+    
     # 用户相关
     path('profile/<str:username>/', views.user_profile, name='user_profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),

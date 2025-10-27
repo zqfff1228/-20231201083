@@ -28,6 +28,7 @@ class Post(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     view_count = models.PositiveIntegerField(default=0, verbose_name='浏览数')
     like_count = models.PositiveIntegerField(default=0, verbose_name='点赞数')
+    favorite_count = models.PositiveIntegerField(default=0, verbose_name='收藏数')
     is_pinned = models.BooleanField(default=False, verbose_name='是否置顶')
     is_active = models.BooleanField(default=True, verbose_name='是否有效')
     
@@ -95,3 +96,18 @@ class Like(models.Model):
             return f'{self.user.username} 点赞了帖子: {self.post.title}'
         else:
             return f'{self.user.username} 点赞了评论: {self.comment.content[:20]}'
+
+
+class Favorite(models.Model):
+    """收藏模型"""
+    user = models.ForeignKey(AuthUser, on_delete=models.CASCADE, verbose_name='用户')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, verbose_name='帖子')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='收藏时间')
+    
+    class Meta:
+        verbose_name = '收藏'
+        verbose_name_plural = '收藏'
+        unique_together = [('user', 'post')]
+    
+    def __str__(self):
+        return f'{self.user.username} 收藏了帖子: {self.post.title}'
